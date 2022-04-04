@@ -23,6 +23,7 @@ public class MatchingMain {
 		ResourceBundle rb = ResourceBundle.getBundle("people");
 		Set<String> keySet = rb.keySet();
 		try {
+			System.out.println("========以下のメンバーをマッチさせます========");
 			for(String key : keySet) {
 				String value = rb.getString(key);
 				value = changeEncode(value);
@@ -32,6 +33,7 @@ public class MatchingMain {
 				if(null == value || value.equals("")) {
 					continue;
 				}
+
 				System.out.println(key + " " + value);
 
 				// 値をカンマで分割し、配列に格納する。[0]=id, [1]=name, [2]=entryYear
@@ -41,22 +43,29 @@ public class MatchingMain {
 				People people = new People(array[0], array[1], array[2]);
 				peopleList.add(people);
 			}
+			System.out.println("");
 			List<People> copiedPeopleList = createCopiedList();
 			Iterator<People> itr = peopleList.iterator();
 
+			System.out.println("========マッチ開始========");
+			System.out.println("");
 			while(itr.hasNext()) {
 				People peopleFromItr = itr.next();
 				People peopleFromList = null;
+
 				if((copiedPeopleList.size() == 0)) {
 					break;
 				}else {
-					peopleFromList = getPeople(copiedPeopleList, peopleFromItr);
+					System.out.println(peopleFromItr.getName()+" のマッチ相手をさがします。");
+					peopleFromList = getPeopleAtRandom(copiedPeopleList, peopleFromItr);
 					showResult(peopleFromItr, peopleFromList);
 					copiedPeopleList = remove(peopleFromList, copiedPeopleList);
 					copiedPeopleList = remove(peopleFromItr, copiedPeopleList);
 					itr.remove();
 				}
 			}
+			System.out.println("========マッチ終了========");
+			System.out.println("");
 		}catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}catch (CloneNotSupportedException e) {
@@ -64,14 +73,30 @@ public class MatchingMain {
 		}
 
 	}
+	/**
+	 * 文字のエンコードを変更し、返却する。<BR>
+	 * @param value 文字列
+	 * @return 文字コードを変更した文字列
+	 * @throws UnsupportedEncodingException
+	 */
 	private static String changeEncode(String value) throws UnsupportedEncodingException {
 		return value = new String(value.getBytes("8859_1"),"UTF-8");
 	}
 
+	/**
+	 * 文字列をカンマで分割し配列に格納し返却する。<BR>
+	 * @param value 文字列
+	 * @return カンマで分割された文字列が入った配列
+	 */
 	private static String[] split(String value) {
 		return value.split(",");
 	}
 
+	/**
+	 * peopleListをディープコピーして、返却する。<BR>
+	 * @return peopleListをディープコピーしたリスト
+	 * @throws CloneNotSupportedException
+	 */
 	private static List<People> createCopiedList() throws CloneNotSupportedException {
 		List<People> copiedPeopleList = new ArrayList<People>();
 		for(int i=0; i<peopleList.size(); i++ ) {
@@ -80,22 +105,27 @@ public class MatchingMain {
 		return copiedPeopleList;
 	}
 
-	private static People getPeople(List<People> copiedPeopleList, People peopleFromItr) {
+	/**
+	 *
+	 * @param copiedPeopleList
+	 * @param peopleFromItr
+	 * @return
+	 */
+	private static People getPeopleAtRandom(List<People> copiedPeopleList, People peopleFromItr) {
 		People peopleFromList = null;
 		try {
 			// 乱数生成
-			Random random = new Random();
 			int size = copiedPeopleList.size();
-			int index = random.nextInt(size);
+			int index = getRandomInt(size);
 			if(size == 1) {
 				return copiedPeopleList.get(0);
 			}
 			peopleFromList =  copiedPeopleList.get(index);
 			// idまたはentryYearが同じ場合再帰呼び出し
-			if(peopleFromItr.getEntryYear().equals(peopleFromList.getEntryYear()) ||
-					peopleFromItr.getId().equals(peopleFromList.getId()))
+			if(isSameEntryYear(peopleFromItr, peopleFromList) ||
+					isSamePeople(peopleFromItr, peopleFromList))
 			{
-				peopleFromList = getPeople(copiedPeopleList, peopleFromItr);
+				peopleFromList = getPeopleAtRandom(copiedPeopleList, peopleFromItr);
 			}
 		}catch (StackOverflowError e) {
 			e.printStackTrace();
@@ -103,28 +133,69 @@ public class MatchingMain {
 		return peopleFromList;
 	}
 
-	private static List<People> remove(People peopleFromList, List<People> copiedPeopleList) {
-		for(People copiedPeople : copiedPeopleList) {
-			if(copiedPeople.getId().equals(peopleFromList.getId())) {
-				copiedPeopleList.remove(copiedPeople);
+	/**
+	 * 引数の範囲までの乱数を生成する。
+	 * @param source
+	 * @return 乱数
+	 */
+	private static int getRandomInt(int source) {
+		Random random = new Random();
+		int index = random.nextInt(source);
+		return index;
+	}
+
+	/**
+	 * 第二引数のリストから要素を取り出し、第一引数の要素と比較し
+	 * 同じである場合は、第一引数のPeopleを第二引数のリストから削除する。<BR>
+	 * @param people
+	 * @param peopleList
+	 * @return リスト
+	 */
+	private static List<People> remove(People people, List<People> peopleList) {
+		for(People copiedPeople : peopleList) {
+			if(isSamePeople(copiedPeople, people)) {
+				peopleList.remove(copiedPeople);
 				break;
 			}
 		}
-		return copiedPeopleList;
+		return peopleList;
 	}
+	/**
+	 * マッチしたペアの結果をコンソールに表示する。<BR>
+	 * @param peopleFromItr
+	 * @param peopleFromList
+	 */
 	private static void showResult(People peopleFromItr, People peopleFromList) {
-		String sameSign = "";
-		if(peopleFromItr.getEntryYear().equals(peopleFromList.getEntryYear()) ||
-				peopleFromItr.getId().equals(peopleFromList.getId()))
-		{
-			sameSign = "★";
+		String sameYearSign = "";
+		String samePeopleSign = "";
+		if(isSameEntryYear(peopleFromItr, peopleFromList)){
+			sameYearSign = "★";
+		}
+		if(isSamePeople(peopleFromItr, peopleFromList)){
+			samePeopleSign = "＝";
 		}
 		System.out.println(
 				peopleFromItr.getName()+"("+peopleFromItr.getEntryYear()+")"+
 				" と "+
 				peopleFromList.getName()+"("+peopleFromList.getEntryYear()+")"+
 				" がペアです。"+
-				sameSign
+				sameYearSign +
+				samePeopleSign
 				);
+		System.out.println("");
+	}
+
+	private static boolean isSameEntryYear(People p1, People p2) {
+		if(p1.getEntryYear().equals(p2.getEntryYear())){
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean isSamePeople(People p1, People p2) {
+		if(p1.getId().equals(p2.getId())){
+			return true;
+		}
+		return false;
 	}
 }
