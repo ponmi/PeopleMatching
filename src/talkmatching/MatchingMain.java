@@ -47,14 +47,15 @@ public class MatchingMain {
 			while(itr.hasNext()) {
 				People peopleFromItr = itr.next();
 				People peopleFromList = null;
-				if(!(copiedPeopleList.size() == 0)) {
+				if((copiedPeopleList.size() == 0)) {
+					break;
+				}else {
 					peopleFromList = getPeople(copiedPeopleList, peopleFromItr);
+					showResult(peopleFromItr, peopleFromList);
+					copiedPeopleList = remove(peopleFromList, copiedPeopleList);
+					copiedPeopleList = remove(peopleFromItr, copiedPeopleList);
+					itr.remove();
 				}
-
-				showResult(peopleFromItr, peopleFromList);
-				copiedPeopleList = remove(peopleFromList, copiedPeopleList);
-				copiedPeopleList = remove(peopleFromItr, copiedPeopleList);
-				itr.remove();
 			}
 		}catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
@@ -80,28 +81,50 @@ public class MatchingMain {
 	}
 
 	private static People getPeople(List<People> copiedPeopleList, People peopleFromItr) {
-		// 乱数生成
-		Random random = new Random();
-		int index = random.nextInt(copiedPeopleList.size());
-
-		People peopleFromList =  copiedPeopleList.get(index);
-		// idまたはentryYearが同じ場合再帰呼び出し
-		if(peopleFromItr.getEntryYear().equals(peopleFromList.getEntryYear()) ||
-				peopleFromItr.getId().equals(peopleFromList.getId()))
-		{
-			getPeople(copiedPeopleList, peopleFromItr);
+		People peopleFromList = null;
+		try {
+			// 乱数生成
+			Random random = new Random();
+			int size = copiedPeopleList.size();
+			int index = random.nextInt(size);
+			if(size == 1) {
+				return copiedPeopleList.get(0);
+			}
+			peopleFromList =  copiedPeopleList.get(index);
+			// idまたはentryYearが同じ場合再帰呼び出し
+			if(peopleFromItr.getEntryYear().equals(peopleFromList.getEntryYear()) ||
+					peopleFromItr.getId().equals(peopleFromList.getId()))
+			{
+				peopleFromList = getPeople(copiedPeopleList, peopleFromItr);
+			}
+		}catch (StackOverflowError e) {
+			e.printStackTrace();
 		}
 		return peopleFromList;
 	}
 
 	private static List<People> remove(People peopleFromList, List<People> copiedPeopleList) {
-		copiedPeopleList.remove(peopleFromList);
+		for(People copiedPeople : copiedPeopleList) {
+			if(copiedPeople.getId().equals(peopleFromList.getId())) {
+				copiedPeopleList.remove(copiedPeople);
+				break;
+			}
+		}
 		return copiedPeopleList;
 	}
 	private static void showResult(People peopleFromItr, People peopleFromList) {
-		System.out.println(peopleFromItr.getName()+
+		String sameSign = "";
+		if(peopleFromItr.getEntryYear().equals(peopleFromList.getEntryYear()) ||
+				peopleFromItr.getId().equals(peopleFromList.getId()))
+		{
+			sameSign = "★";
+		}
+		System.out.println(
+				peopleFromItr.getName()+"("+peopleFromItr.getEntryYear()+")"+
 				" と "+
-				peopleFromList.getName()+
-				" がペアです。");
+				peopleFromList.getName()+"("+peopleFromList.getEntryYear()+")"+
+				" がペアです。"+
+				sameSign
+				);
 	}
 }
